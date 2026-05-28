@@ -2,63 +2,70 @@ package org.dev
 
 import io.quarkus.hibernate.reactive.panache.common.WithSession
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction
+import io.quarkus.vertx.web.Body
+import io.quarkus.vertx.web.Route
+import io.quarkus.vertx.web.Param
 import io.smallrye.mutiny.Uni
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.core.Response
-import org.dev.dto.ProductDTO
+import jakarta.ws.rs.core.MediaType
+import org.dev.dto.SuccessResp
 import org.dev.model.Product
-import org.dev.repository.ProductRepository
+import org.dev.service.ProductService
 
 @ApplicationScoped
 class ProductResource(
-    val productRepository: ProductRepository
+    private val productService: ProductService
 ) {
 
-    @POST
-    @WithTransaction
-    fun create(product: Product) : Uni<Response> {
-        return productRepository.persist(product)
-            .onItem().transform { Response.ok(it).status(Response.Status.CREATED).build() }
-    }
-
-    @GET
-    @Path("/{id}")
+    @Route(
+        methods = [Route.HttpMethod.GET],
+        path = "/api/products",
+        produces = [MediaType.APPLICATION_JSON]
+    )
     @WithSession
-    fun getById(@PathParam("id") id: Long) : Uni<Response> {
-        return productRepository.findById(id)
-            .onItem().ifNotNull().transform { product -> Response.ok(product).build() }
-            .onItem().ifNull().continueWith { Response.status(Response.Status.NOT_FOUND).build() }
+    fun getAllProducts() : Uni<SuccessResp> {
+        return productService.getAllProducts()
     }
 
-    @PUT
-    @Path("/{id}")
-    @WithTransaction
-    fun update(@PathParam("id") id: Long, updatedProduct: ProductDTO) : Uni<Response> {
-        return productRepository.findById(id)
-            .onItem().ifNotNull().transformToUni { existingProduct ->
-                existingProduct.name = updatedProduct.name
-                existingProduct.description = updatedProduct.description
-                existingProduct.price = updatedProduct.price
-                productRepository.persist(existingProduct)
-                    .onItem().transform { Response.ok(it).build() }
-            }
-            .onItem().ifNull().continueWith(Response.status(Response.Status.NOT_FOUND)::build);
+    @Route(
+        methods = [Route.HttpMethod.GET],
+        path = "/api/products/:id",
+        produces = [MediaType.APPLICATION_JSON]
+    )
+    @WithSession
+    fun getProductById(@Param("id") id: String) : Uni<SuccessResp> {
+        return productService.getProductById(id)
     }
 
-    @DELETE
-    @Path("/{id}")
+    @Route(
+        methods = [Route.HttpMethod.POST],
+        path = "/api/products",
+        consumes = [MediaType.APPLICATION_JSON],
+        produces = [MediaType.APPLICATION_JSON]
+    )
     @WithTransaction
-    fun delete(@PathParam("id") id: Long) : Uni<Response> {
-        return productRepository.findById(id)
-            .onItem().ifNotNull().transformToUni { existingProduct ->
-                productRepository.delete(existingProduct)
-                    .onItem().transform { Response.noContent().build() }
-            }
+    fun create(@Body product: Product) : Uni<SuccessResp> {
+        return productService.createProduct(product)
+    }
+
+    @Route(
+        methods = [Route.HttpMethod.PUT],
+        path = "/api/products/:id",
+        consumes = [MediaType.APPLICATION_JSON],
+        produces = [MediaType.APPLICATION_JSON]
+    )
+    @WithTransaction
+    fun update(@Param("id") id: String, @Body updatedProduct: Product) : Uni<SuccessResp> {
+        return productService.updateProduct(id, updatedProduct)
+    }
+
+    @Route(
+        methods = [Route.HttpMethod.DELETE],
+        path = "/api/products/:id",
+        produces = [MediaType.APPLICATION_JSON]
+    )
+    @WithTransaction
+    fun delete(@Param("id") id: String) : Uni<SuccessResp> {
+        return productService.deleteProduct(id)
     }
 }
