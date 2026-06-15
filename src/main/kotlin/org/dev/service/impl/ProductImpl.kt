@@ -5,13 +5,15 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.ws.rs.NotFoundException
 import org.dev.dto.ProductDTO
 import org.dev.dto.SuccessResp
+import org.dev.mapper.ProductMapper
 import org.dev.model.Product
 import org.dev.repository.ProductRepository
 import org.dev.service.ProductService
 
 @ApplicationScoped
 class ProductImpl(
-    val productRepository: ProductRepository
+    val productRepository: ProductRepository,
+    val productMapper: ProductMapper
 ) : ProductService {
     override fun getAllProducts() : Uni<SuccessResp> {
         return productRepository.listAll()
@@ -28,15 +30,17 @@ class ProductImpl(
             }
     }
 
-    override fun createProduct(product: Product): Uni<SuccessResp> {
-        return productRepository.persist(product)
+    override fun createProduct(product: ProductDTO): Uni<SuccessResp> {
+        val entity = productMapper.toEntity(product)
+
+        return productRepository.persist(entity)
             .onItem().transform {
                 SuccessResp(
                 ProductDTO(
-                    id = it.id,
-                    name = it.name,
-                    description = it.description,
-                    price = it.price
+                    id = entity.id,
+                    name = entity.name,
+                    description = entity.description,
+                    price = entity.price
                 )
             ) }
     }
@@ -62,13 +66,13 @@ class ProductImpl(
 
     override fun updateProduct(
         id: String,
-        productDTO: Product
+        product: ProductDTO
     ): Uni<SuccessResp> {
         return findProduct(id)
             .onItem().transformToUni { existingProduct ->
-                existingProduct.name = productDTO.name
-                existingProduct.description = productDTO.description
-                existingProduct.price = productDTO.price
+                existingProduct.name = product.name
+                existingProduct.description = product.description
+                existingProduct.price = product.price
 
                 productRepository.persist(existingProduct)
             }

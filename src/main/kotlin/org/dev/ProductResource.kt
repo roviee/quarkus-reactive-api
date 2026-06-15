@@ -8,8 +8,8 @@ import io.quarkus.vertx.web.Param
 import io.smallrye.mutiny.Uni
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.ws.rs.core.MediaType
+import org.dev.dto.ProductDTO
 import org.dev.dto.SuccessResp
-import org.dev.model.Product
 import org.dev.service.ProductService
 
 @ApplicationScoped
@@ -44,7 +44,7 @@ class ProductResource(
         produces = [MediaType.APPLICATION_JSON]
     )
     @WithTransaction
-    fun create(@Body product: Product) : Uni<SuccessResp> {
+    fun create(@Body product: ProductDTO) : Uni<SuccessResp> {
         return productService.createProduct(product)
     }
 
@@ -55,7 +55,7 @@ class ProductResource(
         produces = [MediaType.APPLICATION_JSON]
     )
     @WithTransaction
-    fun update(@Param("id") id: String, @Body updatedProduct: Product) : Uni<SuccessResp> {
+    fun update(@Param("id") id: String, @Body updatedProduct: ProductDTO) : Uni<SuccessResp> {
         return productService.updateProduct(id, updatedProduct)
     }
 
